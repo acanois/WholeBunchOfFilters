@@ -27,6 +27,7 @@ WholeBunchOfFiltersAudioProcessorEditor::WholeBunchOfFiltersAudioProcessorEditor
     mFilterBox->addItem("Hamming LPF", 1);
     mFilterBox->addItem("Blackman Harris LPF", 2);
     mFilterBox->addItem("Kaiser LPF", 3);
+    mFilterBox->addItem("Transition Method LPF", 4);
     mFilterBox->setJustificationType (Justification::centred);
     addAndMakeVisible (mFilterBox);
     
@@ -65,6 +66,6 @@ void WholeBunchOfFiltersAudioProcessorEditor::resized()
     const int dialSize = 100;
     
     mCutoffSlider->setBounds (removal, 10, dialSize, dialSize);
-    mFilterBox->setBounds(140, 40, 520, 30);
+    mFilterBox->setBounds (140, 40, 520, 30);
     
 }

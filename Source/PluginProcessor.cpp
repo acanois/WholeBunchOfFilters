@@ -26,7 +26,7 @@ WholeBunchOfFiltersAudioProcessor::WholeBunchOfFiltersAudioProcessor()
         mStateTree(*this, nullptr, "ParameterState", {
             std::make_unique<AudioParameterFloat> ("cutoff", "Cutoff",
                 NormalisableRange<float> (20.0f, 20000.0f, 0.001f), mCutoff),
-            std::make_unique<AudioParameterInt> ("filterType", "FilterType", 1, 3, mFilterSelection),
+            std::make_unique<AudioParameterInt> ("filterType", "FilterType", 1, 4, mFilterSelection),
         })
 {
 }
@@ -148,47 +148,62 @@ bool WholeBunchOfFiltersAudioProcessor::isBusesLayoutSupported (const BusesLayou
 
 void WholeBunchOfFiltersAudioProcessor::setFilterType (size_t filterSelection)
 {
+    float cutoff = *mStateTree.getRawParameterValue ("cutoff");
+    size_t order = 21;
+    
     switch (filterSelection)
     {
-        // Hamming LPF
+        // LPF Hamming Window
         case 1:
             *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod
                                 (
-                                    *mStateTree.getRawParameterValue("cutoff"),
+                                    cutoff,
                                     mSampleRate,
-                                    static_cast<size_t> (21),
+                                    order,
                                     dsp::WindowingFunction<float>::hamming
                                 );
             break;
         
-        // Blackman Harris LPF
+        // LPF Blackman Harris Window
         case 2:
             *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod
                                 (
-                                    *mStateTree.getRawParameterValue("cutoff"),
+                                    cutoff,
                                     mSampleRate,
-                                    static_cast<size_t> (21),
+                                    order,
                                     dsp::WindowingFunction<float>::blackmanHarris
                                 );
             break;
-            
+        
+        // LPF Kaiser Method
         case 3:
             *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassKaiserMethod
                                 (
-                                    *mStateTree.getRawParameterValue ("cutoff"),
+                                    cutoff,
                                     mSampleRate,
                                     0.25f,
                                     -100.0f
                                 );
             break;
-        
+            
+        // LPF Transition Method
+        case 4:
+            *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassTransitionMethod
+                                (
+                                    cutoff,
+                                    mSampleRate,
+                                    order,
+                                    0.25f,
+                                    1.0f
+                                );
+            break;
             
         default:
             *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod
                                 (
                                     *mStateTree.getRawParameterValue("cutoff"),
                                     mSampleRate,
-                                    static_cast<size_t> (21),
+                                    order,
                                     dsp::WindowingFunction<float>::hamming
                                 );
             break;
@@ -210,10 +225,7 @@ void WholeBunchOfFiltersAudioProcessor::processBlock (AudioBuffer<float>& buffer
     int   filterSelection = *mStateTree.getRawParameterValue ("filterType");
     float cutoff          = *mStateTree.getRawParameterValue ("cutoff");
     
-//    *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod(cutoff, mSampleRate, static_cast<size_t> (21), dsp::WindowingFunction<float>::hamming);
-    
     setFilterType (filterSelection);
-    
     mFirFilter.process(dsp::ProcessContextReplacing<float> (block));
 }
 
