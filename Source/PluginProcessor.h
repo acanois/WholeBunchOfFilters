@@ -55,6 +55,10 @@ public:
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     
+    //==============================================================================
+    // Filter selection
+    void setFilterType (size_t filterSelection);
+    
     // Return by reference because it's a class
     AudioProcessorValueTreeState& getValueTreeState();
 
@@ -64,9 +68,11 @@ private:
     
     dsp::ProcessorDuplicator<dsp::FIR::Filter<float>, dsp::FIR::Coefficients<float>> mFirFilter;
     
-    float mCutoff        { 5000.0f };
+    int    mFilterSelection  { 1       };
     
-    double mSampleRate   { 44100   };
+    float  mCutoff           { 5000.0f };
+    
+    double mSampleRate       { 44100   };
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WholeBunchOfFiltersAudioProcessor)
 };

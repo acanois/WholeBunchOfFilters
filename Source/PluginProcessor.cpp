@@ -26,8 +26,9 @@ WholeBunchOfFiltersAudioProcessor::WholeBunchOfFiltersAudioProcessor()
         mStateTree(*this, nullptr, "ParameterState", {
             std::make_unique<AudioParameterFloat> ("cutoff", "Cutoff",
                 NormalisableRange<float> (20.0f, 20000.0f, 0.001f), mCutoff),
+            std::make_unique<AudioParameterInt> ("filterType", "FilterType", 1, 3, mFilterSelection),
         })
-    {
+{
 }
 
 WholeBunchOfFiltersAudioProcessor::~WholeBunchOfFiltersAudioProcessor()
@@ -104,8 +105,10 @@ void WholeBunchOfFiltersAudioProcessor::prepareToPlay (double sampleRate, int sa
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = getTotalNumOutputChannels();
     
-    mFirFilter.prepare(spec);
+    mFirFilter.prepare (spec);
     mFirFilter.reset();
+    
+    setFilterType (*mStateTree.getRawParameterValue ("filterType"));
 }
 
 AudioProcessorValueTreeState& WholeBunchOfFiltersAudioProcessor::getValueTreeState()
@@ -143,6 +146,55 @@ bool WholeBunchOfFiltersAudioProcessor::isBusesLayoutSupported (const BusesLayou
 }
 #endif
 
+void WholeBunchOfFiltersAudioProcessor::setFilterType (size_t filterSelection)
+{
+    switch (filterSelection)
+    {
+        // Hamming LPF
+        case 1:
+            *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod
+                                (
+                                    *mStateTree.getRawParameterValue("cutoff"),
+                                    mSampleRate,
+                                    static_cast<size_t> (21),
+                                    dsp::WindowingFunction<float>::hamming
+                                );
+            break;
+        
+        // Blackman Harris LPF
+        case 2:
+            *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod
+                                (
+                                    *mStateTree.getRawParameterValue("cutoff"),
+                                    mSampleRate,
+                                    static_cast<size_t> (21),
+                                    dsp::WindowingFunction<float>::blackmanHarris
+                                );
+            break;
+            
+        case 3:
+            *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassKaiserMethod
+                                (
+                                    *mStateTree.getRawParameterValue ("cutoff"),
+                                    mSampleRate,
+                                    0.25f,
+                                    -100.0f
+                                );
+            break;
+        
+            
+        default:
+            *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod
+                                (
+                                    *mStateTree.getRawParameterValue("cutoff"),
+                                    mSampleRate,
+                                    static_cast<size_t> (21),
+                                    dsp::WindowingFunction<float>::hamming
+                                );
+            break;
+    }
+}
+
 void WholeBunchOfFiltersAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages)
 {
     ScopedNoDenormals noDenormals;
@@ -155,9 +207,12 @@ void WholeBunchOfFiltersAudioProcessor::processBlock (AudioBuffer<float>& buffer
     // Process filter
     dsp::AudioBlock<float> block (buffer);
     
-    float cutoff = *mStateTree.getRawParameterValue("cutoff");
+    int   filterSelection = *mStateTree.getRawParameterValue ("filterType");
+    float cutoff          = *mStateTree.getRawParameterValue ("cutoff");
     
-    *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod(cutoff, mSampleRate, 21, dsp::WindowingFunction<float>::hamming);
+//    *mFirFilter.state = *dsp::FilterDesign<float>::designFIRLowpassWindowMethod(cutoff, mSampleRate, static_cast<size_t> (21), dsp::WindowingFunction<float>::hamming);
+    
+    setFilterType (filterSelection);
     
     mFirFilter.process(dsp::ProcessContextReplacing<float> (block));
 }

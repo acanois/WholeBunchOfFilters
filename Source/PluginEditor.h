@@ -31,8 +31,13 @@ private:
     // access the processor object that created it.
     WholeBunchOfFiltersAudioProcessor& processor;
     
+    // Cutoff slider
     ScopedPointer<Slider> mCutoffSlider;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> mCutoffAttachment;
+    
+    // Menu
+    ScopedPointer<ComboBox> mFilterBox;
+    ScopedPointer<AudioProcessorValueTreeState::ComboBoxAttachment> mFilterType;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WholeBunchOfFiltersAudioProcessorEditor)
 };
